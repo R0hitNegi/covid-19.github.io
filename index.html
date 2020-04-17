@@ -1,240 +1,385 @@
-<!DOCTYPE html>
-<html lang="en">
-<title>W3.CSS Template</title>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
-<style>
-body,h1,h2,h3,h4,h5 {font-family: "Raleway", sans-serif}
-.w3-quarter img{margin-bottom: -6px; cursor: pointer}
-.w3-quarter img:hover{opacity: 0.6; transition: 0.3s}
-</style>
-<body class="w3-light-grey">
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
-<!-- Sidebar/menu -->
-<nav class="w3-sidebar w3-bar-block w3-black w3-animate-right w3-top w3-text-light-grey w3-large" style="z-index:3;width:250px;font-weight:bold;display:none;right:0;" id="mySidebar">
-  <a href="javascript:void()" onclick="w3_close()" class="w3-bar-item w3-button w3-center w3-padding-32">CLOSE</a> 
-  <a href="#" onclick="w3_close()" class="w3-bar-item w3-button w3-center w3-padding-16">PORTFOLIO</a> 
-  <a href="#about" onclick="w3_close()" class="w3-bar-item w3-button w3-center w3-padding-16">ABOUT ME</a> 
-  <a href="#contact" onclick="w3_close()" class="w3-bar-item w3-button w3-center w3-padding-16">CONTACT</a>
-</nav>
+    <title>Covid 19 Dashboard & Data Map</title>
 
-<!-- Top menu on small screens -->
-<header class="w3-container w3-top w3-white w3-xlarge w3-padding-16">
-  <span class="w3-left w3-padding">SOME NAME</span>
-  <a href="javascript:void(0)" class="w3-right w3-button w3-white" onclick="w3_open()">☰</a>
-</header>
+    <link
+      href="./dist/jqvmap.css"
+      media="screen"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+    />
+    <style>
+      html,
+      body {
+        padding: 0;
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        position: relative;
+      }
+      #vmap {
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        margin: 0;
+      }
+    </style>
 
-<!-- Overlay effect when opening sidebar on small screens -->
-<div class="w3-overlay w3-animate-opacity" onclick="w3_close()" style="cursor:pointer" title="close side menu" id="myOverlay"></div>
+    <script src="http://code.jquery.com/jquery-1.11.3.min.js"></script>
+    <script src="./dist/jquery.vmap.js"></script>
+    <script src="./dist/maps/jquery.vmap.world.js" charset="utf-8"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.2/axios.min.js"></script>
+    <script type="text/javascript" src="js/jquery.vmap.sampledata.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.3"></script>
 
-<!-- !PAGE CONTENT! -->
-<div class="w3-main w3-content" style="max-width:1600px;margin-top:83px">
-  
-  <!-- Photo grid -->
-  <div class="w3-row w3-grayscale-min">
-    <div class="w3-quarter">
-      <img src="/w3images/girl.jpg" style="width:100%" onclick="onClick(this)" alt="Canoeing again">
-      <img src="/w3images/boy.jpg" style="width:100%" onclick="onClick(this)" alt="Quiet day at the beach. Cold, but beautiful">
-      <img src="/w3images/girl.jpg" style="width:100%" onclick="onClick(this)" alt="The Beach. Me. Alone. Beautiful">
-   </div>
-    
-   <div class="w3-quarter">
-      <img src="/w3images/girl_train.jpg" style="width:100%" onclick="onClick(this)" alt="A girl, and a train passing">
-      <img src="/w3images/man_bench.jpg" style="width:100%" onclick="onClick(this)" alt="Waiting for the bus in the desert">
-      <img src="/w3images/natureboy.jpg" style="width:100%" onclick="onClick(this)" alt="Nature again.. At its finest!">
+    <!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script> -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"></script>
+
+    <!-- API and map  -->
+    <script type="text/javascript">
+      var loaded = false;
+      var allCountrySummary = [];
+      var totalInformation = {
+        totalConfirmed: 0,
+        totalDeaths: 0,
+        totalRecovered: 0
+      };
+
+      const processAPIData = data => {
+        allCountrySummary = data.Countries;
+
+        allCountrySummary.forEach(country => {
+          totalInformation.totalConfirmed += country.TotalConfirmed;
+          totalInformation.totalDeaths += country.TotalDeaths;
+          totalInformation.totalRecovered += country.TotalRecovered;
+        });
+      };
+
+      const showRegionResultText = result => {
+        $("#region-new-confirmed").text(`Confirmed : ${result.NewConfirmed}`);
+        $("#region-new-deaths").text(`Deaths : ${result.NewDeaths}`);
+        $("#region-new-recovered").text(`Recovered : ${result.NewRecovered}`);
+        $("#region-total-confirmed").text(
+          `Confirmed : ${result.TotalConfirmed}`
+        );
+        $("#region-total-deaths").text(`Deaths : ${result.TotalDeaths}`);
+        $("#region-total-recovered").text(
+          `Recovered : ${result.TotalRecovered}`
+        );
+      };
+
+      const removeLoaderAndShowMap = () => {
+        $("#loader").hide();
+        $("body").append($("<div>").attr("id", "vmap"));
+        $("#vmap").vectorMap({
+          map: "world_en",
+          enableZoom: true,
+          showTooltip: true,
+          onResize: function(element, width, height) {
+            console.log("Map Size: " + width + "x" + height);
+          },
+          onRegionClick: function(element, code, region) {
+            console.log(code);
+            let result = allCountrySummary.find(item => {
+              return (
+                item["Country"] === region ||
+                item["Country"].toLowerCase() === code
+              );
+            });
+            console.log(result);
+            if (result !== undefined) {
+              showRegionResultText(result);
+              $("#modal-title").text(region);
+              $("#alert-modal").modal("show");
+              fetchAndDisplay(result["Slug"]);
+            }
+          }
+        });
+      };
+
+      $(() => {
+        axios
+          .get("https://api.covid19api.com/summary", null)
+          .then(res => {
+            processAPIData(res.data);
+            loaded = true;
+            removeLoaderAndShowMap();
+            showStatistics();
+          })
+          .catch(err => {
+            console.err(err);
+          });
+      });
+    </script>
+
+    <!-- Statistics chart -->
+    <script>
+      const buildStatisticsList = () => {
+        return $("<ul>")
+          .addClass("list-group mt-3 mb-2")
+          .append(
+            $("<li>")
+              .addClass("list-group-item")
+              .append(
+                $("<h3>")
+                  .addClass("text-center")
+                  .text("Statistics")
+              ),
+            $("<li>")
+              .addClass("list-group-item list-group-item-warning")
+              .text(`Total Confirmed : ${totalInformation.totalConfirmed}`),
+            $("<li>")
+              .addClass("list-group-item list-group-item-danger")
+              .text(`Total Deaths : ${totalInformation.totalDeaths}`),
+            $("<li>")
+              .addClass("list-group-item list-group-item-success")
+              .text(`Total Recovered : ${totalInformation.totalRecovered}`)
+          );
+      };
+      const showStatistics = () => {
+        let list = buildStatisticsList();
+        let stat = $("<div>")
+          .addClass("container-fluid mt-2 mb-5")
+          .append(
+            $("<div>")
+              .addClass("row")
+              .append(
+                $("<div>")
+                  .addClass("col-md-6")
+                  .append(list),
+                $("<div>")
+                  .addClass("col-md-6")
+                  .append($("<canvas>").attr("id", "total-stat-chart"))
+              )
+          );
+        $("body").append(stat);
+        renderTotalStatChart(totalInformation);
+      };
+      const renderTotalStatChart = data => {
+        var ctx = $("#total-stat-chart");
+        var myChart = new Chart(ctx, {
+          type: "horizontalBar",
+          data: {
+            labels: ["Total Confirmed", "Total Deaths", "Total Recovered"],
+            datasets: [
+              {
+                label: "World Wide Statisticss",
+                data: [
+                  data.totalConfirmed,
+                  data.totalDeaths,
+                  data.totalRecovered
+                ],
+                backgroundColor: [
+                  "rgba(255, 255, 0, 1)",
+                  "rgba(255, 0, 0, 1)",
+                  "rgba(0, 255, 0, 1)"
+                ],
+                borderColor: [],
+                borderWidth: 1
+              }
+            ]
+          },
+          options: {
+            scales: {
+              yAxes: [
+                {
+                  ticks: {
+                    beginAtZero: true
+                  }
+                }
+              ]
+            }
+          }
+        });
+      };
+    </script>
+
+    <!-- Region wise information  -->
+    <script>
+      const processRegionAPIData = objArr => {
+        let list = [];
+        Array.from(objArr).forEach(item => {
+          list.push(item.Cases);
+        });
+        return list;
+      };
+
+      const processDateTimeFromAPIData = objArr => {
+        let list = [];
+        Array.from(objArr).forEach(item => {
+          list.push(new Date(item.Date).getDate().toLocaleString());
+        });
+        return list;
+      };
+
+      const fetchAndDisplay = region => {
+        let chart = generateRegionChart();
+        fetchRegionData(region, chart);
+      };
+
+      const fetchRegionData = (region, chart) => {
+        axios
+          .get(
+            `https://api.covid19api.com/total/country/${region}/status/confirmed`
+          )
+          .then(res => {
+            chart.data.datasets[0].data = processRegionAPIData(res.data);
+            chart.data.labels = processDateTimeFromAPIData(res.data);
+            chart.update();
+          })
+          .catch(err => {
+            console.error(err);
+          });
+        axios
+          .get(
+            `https://api.covid19api.com/total/country/${region}/status/deaths`
+          )
+          .then(res => {
+            chart.data.datasets[1].data = processRegionAPIData(res.data);
+            chart.update();
+          })
+          .catch(err => {
+            console.error(err);
+          });
+        axios
+          .get(
+            `https://api.covid19api.com/total/country/${region}/status/recovered`
+          )
+          .then(res => {
+            chart.data.datasets[2].data = processRegionAPIData(res.data);
+            chart.update();
+          })
+          .catch(err => {
+            console.error(err);
+          });
+      };
+
+      const generateRegionChart = () => {
+        $("#region-stat-chart").remove();
+        $("#region-stat-chart-container").append(
+          $("<canvas>").attr("id", "region-stat-chart")
+        );
+        var ctx = document.getElementById("region-stat-chart").getContext("2d");
+
+        var myChart = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: [],
+            datasets: [
+              {
+                label: "Confirmed",
+                data: [],
+                backgroundColor: ["rgba(204, 204, 0, 0.4)"],
+                borderColor: ["rgba(204, 204, 0, 1)"],
+                borderWidth: 1
+              },
+              {
+                label: "Deaths",
+                data: [],
+                backgroundColor: ["rgba(255, 0, 0, 0.4)"],
+                borderColor: ["rgba(255, 0, 0, 1)"],
+                borderWidth: 1
+              },
+              {
+                label: "Recovered",
+                data: [],
+                backgroundColor: ["rgba(0, 255, 0, 0.4)"],
+                borderColor: ["rgba(0, 255, 0, 1)"],
+                borderWidth: 1
+              }
+            ]
+          },
+          options: {
+            scales: {
+              yAxes: [
+                {
+                  ticks: {
+                    beginAtZero: true
+                  }
+                }
+              ]
+            }
+          }
+        });
+        return myChart;
+      };
+    </script>
+  </head>
+  <body>
+    <div id="loader" style="display: flex; justify-content: center;">
+      <div class="spinner-grow text-muted mt-3"></div>
+      <div class="spinner-grow text-primary mt-3"></div>
+      <div class="spinner-grow text-success mt-3"></div>
+      <div class="spinner-grow text-info mt-3"></div>
+      <div class="spinner-grow text-warning mt-3"></div>
+      <div class="spinner-grow text-danger mt-3"></div>
+      <div class="spinner-grow text-secondary mt-3"></div>
+      <div class="spinner-grow text-dark mt-3"></div>
+      <div class="spinner-grow text-light mt-3"></div>
     </div>
-    
-    <div class="w3-quarter">
-      <img src="/w3images/man_bench.jpg" style="width:100%" onclick="onClick(this)" alt="Waiting for the bus in the desert">
-      <img src="/w3images/girl_mountain.jpg" style="width:100%" onclick="onClick(this)" alt="What a beautiful scenery this sunset">
-      <img src="/w3images/closegirl.jpg" style="width:100%" onclick="onClick(this)" alt="The Beach. Me. Alone. Beautiful">
-    </div>
 
-    <div class="w3-quarter">
-      <img src="/w3images/natureboy.jpg" style="width:100%" onclick="onClick(this)" alt="A boy surrounded by beautiful nature">
-      <img src="/w3images/girl_train.jpg" style="width:100%" onclick="onClick(this)" alt="A girl, and a train passing">
-      <img src="/w3images/boy.jpg" style="width:100%" onclick="onClick(this)" alt="Quiet day at the beach. Cold, but beautiful">
-    </div>
-  </div>
+    <!-- Modal -->
+    <div
+      class="modal fade"
+      id="alert-modal"
+      tabindex="-1"
+      role="dialog"
+      aria-labelledby=""
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modal-title"></h5>
+            <button
+              type="button"
+              class="close"
+              data-dismiss="modal"
+              aria-label="Close"
+            >
+              <span aria-hidden="true" id="modal-body">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
 
-  <!-- Pagination -->
-  <div class="w3-center w3-padding-32">
-    <div class="w3-bar">
-      <a href="#" class="w3-bar-item w3-button w3-hover-black">«</a>
-      <a href="#" class="w3-bar-item w3-black w3-button">1</a>
-      <a href="#" class="w3-bar-item w3-button w3-hover-black">2</a>
-      <a href="#" class="w3-bar-item w3-button w3-hover-black">3</a>
-      <a href="#" class="w3-bar-item w3-button w3-hover-black">4</a>
-      <a href="#" class="w3-bar-item w3-button w3-hover-black">»</a>
-    </div>
-  </div>
-  
-  <!-- Modal for full size images on click-->
-  <div id="modal01" class="w3-modal w3-black" style="padding-top:0" onclick="this.style.display='none'">
-    <span class="w3-button w3-black w3-xlarge w3-display-topright">×</span>
-    <div class="w3-modal-content w3-animate-zoom w3-center w3-transparent w3-padding-64">
-      <img id="img01" class="w3-image">
-      <p id="caption"></p>
-    </div>
-  </div>
+            <div class="container-fluid">
+              <div class="row">
+                <div class="col-md-12">
+                  <div id="region-stat-chart-container">
+                    <canvas id="region-stat-chart"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-  <!-- About section -->
-  <div class="w3-container w3-dark-grey w3-center w3-text-light-grey w3-padding-32" id="about">
-    <h4><b>About Me</b></h4>
-    <img src="/w3images/avatar_hat.jpg" alt="Me" class="w3-image w3-padding-32" width="600" height="650">
-    <div class="w3-content w3-justify" style="max-width:600px">
-      <h4>My Name</h4>
-      <p>Some text about me. I love taking photos of PEOPLE. I am lorem ipsum consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure
-        dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum consectetur adipiscing elit, sed do eiusmod tempor
-        incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-      </p>
-      <p>mail: example@example.com</p>
-      <p>tel: 5353 35531</p>
-      <hr class="w3-opacity">
-      <h4 class="w3-padding-16">Technical Skills</h4>
-      <p class="w3-wide">Photography</p>
-      <div class="w3-white">
-        <div class="w3-container w3-padding-small w3-center w3-grey" style="width:95%">95%</div>
-      </div>
-      <p class="w3-wide">Web Design</p>
-      <div class="w3-white">
-        <div class="w3-container w3-padding-small w3-center w3-grey" style="width:85%">85%</div>
-      </div>
-      <p class="w3-wide">Photoshop</p>
-      <div class="w3-white">
-        <div class="w3-container w3-padding-small w3-center w3-grey" style="width:80%">80%</div>
-      </div>
-      <p><button class="w3-button w3-light-grey w3-padding-large w3-margin-top w3-margin-bottom w3-hover-black">Download Resume</button></p>
-      <hr class="w3-opacity">
-
-      <h4 class="w3-padding-16">How much I charge</h4>
-      <div class="w3-row-padding" style="margin:0 -16px">
-        <div class="w3-half w3-margin-bottom">
-          <ul class="w3-ul w3-white w3-center">
-            <li class="w3-black w3-xlarge w3-padding-32">Basic</li>
-            <li class="w3-padding-16">Web Design</li>
-            <li class="w3-padding-16">Photography</li>
-            <li class="w3-padding-16">5GB Storage</li>
-            <li class="w3-padding-16">Mail Support</li>
-            <li class="w3-padding-16">
-              <h2>$ 10</h2>
-              <span class="w3-opacity">per month</span>
-            </li>
-            <li class="w3-light-grey w3-padding-24">
-              <button class="w3-button w3-white w3-padding-large">Sign Up</button>
-            </li>
-          </ul>
+            
+          </div>
         </div>
-        
-        <div class="w3-half">
-          <ul class="w3-ul w3-white w3-center">
-            <li class="w3-black w3-xlarge w3-padding-32">Pro</li>
-            <li class="w3-padding-16">Web Design</li>
-            <li class="w3-padding-16">Photography</li>
-            <li class="w3-padding-16">50GB Storage</li>
-            <li class="w3-padding-16">Endless Support</li>
-            <li class="w3-padding-16">
-              <h2>$ 25</h2>
-              <span class="w3-opacity">per month</span>
-            </li>
-            <li class="w3-light-grey w3-padding-24">
-              <button class="w3-button w3-white w3-padding-large">Sign Up</button>
-            </li>
-          </ul>
-        </div>
       </div>
     </div>
-  </div>
+    <script type="text/javascript">
 
-  <!-- Contact section -->
-  <div class="w3-container w3-light-grey w3-padding-32 w3-padding-large" id="contact">
-    <div class="w3-content" style="max-width:600px">
-      <h4 class="w3-center"><b>Contact Me</b></h4>
-      <p>Do you want me to photograph you? Fill out the form and fill me in with the details :) I love meeting new people!</p>
-      <form action="/action_page.php" target="_blank">
-        <div class="w3-section">
-          <label>Name</label>
-          <input class="w3-input w3-border" type="text" name="Name" required>
-        </div>
-        <div class="w3-section">
-          <label>Email</label>
-          <input class="w3-input w3-border" type="text" name="Email" required>
-        </div>
-        <div class="w3-section">
-          <label>Message</label>
-          <input class="w3-input w3-border" type="text" name="Message" required>
-        </div>
-        <button type="submit" class="w3-button w3-block w3-black w3-margin-bottom">Send Message</button>
-      </form>
-    </div>
-  </div>
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-36251023-1']);
+  _gaq.push(['_setDomainName', 'jqueryscript.net']);
+  _gaq.push(['_trackPageview']);
 
-  <!-- Footer -->
-  <footer class="w3-container w3-padding-32 w3-grey">  
-    <div class="w3-row-padding">
-      <div class="w3-third">
-        <h3>INFO</h3>
-        <p>Praesent tincidunt sed tellus ut rutrum. Sed vitae justo condimentum, porta lectus vitae, ultricies congue gravida diam non fringilla.</p>      
-      </div>
-    
-      <div class="w3-third">
-        <h3>BLOG POSTS</h3>
-        <ul class="w3-ul">
-          <li class="w3-padding-16 w3-hover-black">
-            <img src="/w3images/workshop.jpg" class="w3-left w3-margin-right" style="width:50px">
-            <span class="w3-large">Lorem</span><br>
-            <span>Sed mattis nunc</span>
-          </li>
-          <li class="w3-padding-16 w3-hover-black">
-            <img src="/w3images/gondol.jpg" class="w3-left w3-margin-right" style="width:50px">
-            <span class="w3-large">Ipsum</span><br>
-            <span>Praes tinci sed</span>
-          </li> 
-        </ul>
-      </div>
-
-      <div class="w3-third">
-        <h3>POPULAR TAGS</h3>
-        <p>
-          <span class="w3-tag w3-black w3-margin-bottom">Travel</span> <span class="w3-tag w3-dark-grey w3-small w3-margin-bottom">New York</span> <span class="w3-tag w3-dark-grey w3-small w3-margin-bottom">London</span>
-          <span class="w3-tag w3-dark-grey w3-small w3-margin-bottom">IKEA</span> <span class="w3-tag w3-dark-grey w3-small w3-margin-bottom">NORWAY</span> <span class="w3-tag w3-dark-grey w3-small w3-margin-bottom">DIY</span>
-          <span class="w3-tag w3-dark-grey w3-small w3-margin-bottom">Ideas</span> <span class="w3-tag w3-dark-grey w3-small w3-margin-bottom">Baby</span> <span class="w3-tag w3-dark-grey w3-small w3-margin-bottom">Family</span>
-          <span class="w3-tag w3-dark-grey w3-small w3-margin-bottom">News</span> <span class="w3-tag w3-dark-grey w3-small w3-margin-bottom">Clothing</span> <span class="w3-tag w3-dark-grey w3-small w3-margin-bottom">Shopping</span>
-          <span class="w3-tag w3-dark-grey w3-small w3-margin-bottom">Sports</span> <span class="w3-tag w3-dark-grey w3-small w3-margin-bottom">Games</span>
-        </p>
-      </div>
-    </div>
-  </footer>
-  
-  <div class="w3-black w3-center w3-padding-24">Powered by <a href="https://www.w3schools.com/w3css/default.asp" title="W3.CSS" target="_blank" class="w3-hover-opacity">w3.css</a></div>
-
-<!-- End page content -->
-</div>
-
-<script>
-// Script to open and close sidebar
-function w3_open() {
-  document.getElementById("mySidebar").style.display = "block";
-  document.getElementById("myOverlay").style.display = "block";
-}
-
-function w3_close() {
-  document.getElementById("mySidebar").style.display = "none";
-  document.getElementById("myOverlay").style.display = "none";
-}
-
-// Modal Image Gallery
-function onClick(element) {
-  document.getElementById("img01").src = element.src;
-  document.getElementById("modal01").style.display = "block";
-  var captionText = document.getElementById("caption");
-  captionText.innerHTML = element.alt;
-}
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
 
 </script>
-
-
-</body>
+  </body>
 </html>
